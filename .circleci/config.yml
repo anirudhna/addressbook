@@ -4,7 +4,7 @@
 #
 version: 2
 jobs:
-  build:
+  run_centoscore:
     docker:
       # specify the version you desire here
       - image: circleci/openjdk:8-jdk
@@ -39,3 +39,13 @@ jobs:
 
       # run tests!
       - run: mvn test
+
+workflows:
+    version: 2
+    regression:
+        jobs:
+            - run_centoscore:
+                requires:
+                    - start_run_centoscore
+            - start_run_centoscore:
+                type: approval    
