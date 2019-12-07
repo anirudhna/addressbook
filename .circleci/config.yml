@@ -89,7 +89,7 @@ workflows:
                 type: approval
             - run_centoscore:
                 requires:
-            - start_run_centoscore:
+                    - start_run_centoscore:
             - start_run_centoscore:
                 type: approval
 
