@@ -88,10 +88,10 @@ workflows:
                     - start_run_centoscore
             - start_run_centoscore:
                 type: approval
-            - run_centoscore:
+            - run_centosbulk:
                 requires:
-                    - start_run_centoscore:
-            - start_run_centoscore:
+                    - start_run_centosbulk
+            - start_run_centosbulk:
                 type: approval
 
 
