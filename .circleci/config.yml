@@ -86,14 +86,18 @@ workflows:
             - run_centoscore:
                 requires:
                     - start_run_centoscore
-            - start_run_centoscore:
+            - start_run_centoscore_regression:
                 type: approval
             - run_centosbulk:
                 requires:
                     - start_run_centosbulk
-            - start_run_centosbulk:
+            - start_run_centosbulk_regression:
                 type: approval
-
+            - run_windowsvalidation:
+                requires:
+                    - start_run_windows_validation
+            - start_run_windows_validation:
+                type: approval
 
 
 
