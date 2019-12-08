@@ -2,66 +2,167 @@
 #
 # Check https://circleci.com/docs/2.0/language-java/ for more details
 #
+
 working_dir: &working_dir
   working_directory: ~/repo
 
-enviroment_val: &enviroment_val
+environment: &environment
   MAVEN_OPTS: -Xmx3200m
+
+restore_cache: &restore_cache
+  keys:
+    - v1-dependencies-{{ checksum "pom.xml" }}
+            # fallback to using the latest cache if no exact match is found
+    - v1-dependencies-
+
+save_cache: &save_cache
+  paths:
+    - ~/.m2
+  key: v1-dependencies-{{ checksum "pom.xml" }}
+
+chrome_binary_download: &chrome_binary_download
+  - run:
+    name: make sure chrome binary is available
+    command: | 
+      wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+      sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+      which google-chrome
+      export PATH=/home/circleci/repo/target/classes/drivers:$PATH
+      wget  https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
+      unzip chromedriver_linux64.zip
+      sudo mv chromedriver /usr/bin/chromedriver
+      sudo chown root:root /usr/bin/chromedriver
+      sudo chmod 777 /usr/bin/*chrome*
+
+install_selenium: &install_selenium
+  - run: 
+    name: Install Selenium
+    command: |
+      wget https://selenium-release.storage.googleapis.com/3.13/selenium-server-standalone-3.13.0.jar
+      wget http://www.java2s.com/Code/JarDownload/testng/testng-6.8.7.jar.zip
+      unzip testng-6.8.7.jar.zip
+
+xvfb: &xvfb
+  - run:
+    name: Stand up xvfb
+    command: |
+      nohup Xvfb :99 > /dev/null 2>&1 &
+     #nohup /usr/bin/Xvfb :6 -ac -screen 0 1024x768x16  -fbdir /tmp &
+
 
 version: 2
 jobs:
   run_centoscore:
     docker:
-      # specify the version you desire here
-      - image: circleci/openjdk:8-jdk
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
- 
+      - image: circleci/openjdk:8-jdk-browsers
       - *working_dir
-      - *enviroment_val
-
+      - *environment
     steps:
       - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "pom.xml" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
-
+      - *restore_cache
       - run: mvn dependency:go-offline
-
-      - save_cache:
-          paths:
-            - ~/.m2
-          key: v1-dependencies-{{ checksum "pom.xml" }}
-
-      # run tests!
-      - run: mvn test
-
+      - *save_cache
+      - *chrome_binary_download
+      - *install_selenium
+      - *xvfb
+      
+      - run:
+          name: Run Selenium - dashboardtests,issuetests
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=dashboard,issues
+          when: always
   
+      - run:
+          name: Run Selenium - navigationtest,pdftests
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=navigation,pdf
+          when: always
+    
+      - run:
+          name: Run Selenium - pagestests,projectsettings
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=pages,projectsettings
+          when: always
 
+      - run:
+          name: Run Selenium - reporttestsscope,reporttestscript
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=reporttestsscope,reporttestscript
+          when: always
+     
+      - run:
+          name: Run Selenium - reporttestsmisc,rescan
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=reporttestsmisc,rescan
+          when: always
+      
+      - run:
+          name: Run Selenium - scansettingstests,scanstests
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=scansettings,scans
+          when: always
+    
+      - run:
+          name: Run Selenium - systemsettingstests,templatetests
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=systemsettings,template
+          when: always
+   
+      - run:
+          name: Run Selenium - testingstandardtests,userlogintest
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=testingstandard,userlogin
+          when: always
+      
+      - run:
+          name: Run Selenium - usermanagementtests,organizationsettingstests
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=usermanagement,organizationsettings
+          when: always
+    
+      - run:
+          name: Run Selenium - pagegroupstests,readonlyaccesstests
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=pagegroups,readonlyaccess
+          when: always 
+      
+      - run:
+          name: Run Selenium - issuetrackertests,schedulescans
+          command: |
+            nohup xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar 2>&1 &
+            nohup google-chrome --headless 2>&1 &
+            mvn test -DappUrl=https://comply-qa-centos-core.dequelabs.com -DadminUserName=admin@deque.com -DadminPassword=f@ncy7201toaster -DdefaultPassword=deque -Dgroups=issuetracker,schedulescans
+          when: always
+    
+      - store_artifacts:
+          path: ~/repo/Reports
+          
 workflows:
     version: 2
     regression:
         jobs:
             - run_centoscore:
                 requires:
-                    - start_run_centoscore_regression
-            - start_run_centoscore_regression:
-                type: approval
-            - run_centosbulk:
-                requires:
-                    - start_run_centosbulk_regression
-            - start_run_centosbulk_regression:
-                type: approval
-            - run_windowsvalidation:
-                requires:
-                    - start_run_windows_validation
-            - start_run_windows_validation:
-                type: approval
-
+                    - start_run_centoscore
+            - start_run_centoscore:
+                type: approval    

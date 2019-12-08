@@ -1,0 +1,67 @@
+# Java Maven CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-java/ for more details
+#
+working_dir: &working_dir
+  working_directory: ~/repo
+
+enviroment_val: &enviroment_val
+  MAVEN_OPTS: -Xmx3200m
+
+version: 2
+jobs:
+  run_centoscore:
+    docker:
+      # specify the version you desire here
+      - image: circleci/openjdk:8-jdk
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+ 
+      - *working_dir
+      - *enviroment_val
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: mvn dependency:go-offline
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+
+      # run tests!
+      - run: mvn test
+
+  
+
+workflows:
+    version: 2
+    regression:
+        jobs:
+            - run_centoscore:
+                requires:
+                    - start_run_centoscore_regression
+            - start_run_centoscore_regression:
+                type: approval
+            - run_centosbulk:
+                requires:
+                    - start_run_centosbulk_regression
+            - start_run_centosbulk_regression:
+                type: approval
+            - run_windowsvalidation:
+                requires:
+                    - start_run_windows_validation
+            - start_run_windows_validation:
+                type: approval
+
