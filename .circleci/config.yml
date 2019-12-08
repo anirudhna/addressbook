@@ -2,9 +2,11 @@
 #
 # Check https://circleci.com/docs/2.0/language-java/ for more details
 #
+working_dir: &working_dir
+  working_directory: ~/repo
 
- workingdir: &workingdir
-   working_directory: ~/repo
+enviroment_val: &enviroment_val
+  MAVEN_OPTS: -Xmx3200m
 
 version: 2
 jobs:
@@ -17,12 +19,9 @@ jobs:
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
-
-      - *workingdir
-
-    environment:
-      # Customize the JVM maximum heap limit
-      MAVEN_OPTS: -Xmx3200m
+ 
+      - *working_dir
+      - *enviroment_val
 
     steps:
       - checkout
@@ -43,46 +42,26 @@ jobs:
 
       # run tests!
       - run: mvn test
- 
-  run_centosbulk:
-    docker:
-      # specify the version you desire here
-      - image: circleci/openjdk:8-jdk
 
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
+  
 
-    working_directory: ~/repo
-working_dir:
-    working_directory: ~/repo
-version: 2
-jobs:
-    run_centoscore:
-        docker:
-            - {image: 'circleci/openjdk:8-jdk'}
-            - {working_directory: ~/repo}
-        environment:
-            MAVEN_OPTS: '-Xmx3200m'
-        steps:
-            - checkout
-            - {restore_cache: {keys: ['v1-dependencies-{{ checksum "pom.xml" }}', v1-dependencies-]}}
-            - {run: 'mvn dependency:go-offline'}
-            - {save_cache: {paths: [~/.m2], key: 'v1-dependencies-{{ checksum "pom.xml" }}'}}
-            - {run: 'mvn test'}
-    run_centosbulk:
-        docker:
-            - {image: 'circleci/openjdk:8-jdk'}
-    working_directory: "~/repo\nenvironment:\n  MAVEN_OPTS: -Xmx3200m\n\nsteps:\n  - checkout\n\n  - restore_cache:\n      keys:\n        - v1-dependencies-{{ checksum \"pom.xml\" }}\n        - v1-dependencies-\n\n  - run: mvn dependency:go-offline\n\n  - save_cache:\n      paths:\n        - ~/.m2\n      key: v1-dependencies-{{ checksum \"pom.xml\" }}\n\n  - run: mvn test"
 workflows:
     version: 2
     regression:
         jobs:
-            - {run_centoscore: {requires: [start_run_centoscore_regression]}}
-            - {start_run_centoscore_regression: {type: approval}}
-            - {run_centosbulk: {requires: [start_run_centosbulk_regression]}}
-            - {start_run_centosbulk_regression: {type: approval}}
-            - {run_windowsvalidation: {requires: [start_run_windows_validation]}}
-            - {start_run_windows_validation: {type: approval}}
+            - run_centoscore:
+                requires:
+                    - start_run_centoscore_regression
+            - start_run_centoscore_regression:
+                type: approval
+            - run_centosbulk:
+                requires:
+                    - start_run_centosbulk_regression
+            - start_run_centosbulk_regression:
+                type: approval
+            - run_windowsvalidation:
+                requires:
+                    - start_run_windows_validation
+            - start_run_windows_validation:
+                type: approval
 
