@@ -42,7 +42,7 @@ jobs:
 
       # run tests!
       - run: mvn test
-  
+jobs:  
   run_centosbulk:
     docker:
       # specify the version you desire here
