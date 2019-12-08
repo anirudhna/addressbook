@@ -46,7 +46,7 @@ xvfb: &xvfb
   - run:
     name: Stand up xvfb
     command: |
-       nohup Xvfb :99 > /dev/null 2>&1 &
+     #  nohup Xvfb :99 > /dev/null 2>&1 &
       #nohup /usr/bin/Xvfb :6 -ac -screen 0 1024x768x16  -fbdir /tmp &
 
 
