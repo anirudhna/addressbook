@@ -55,8 +55,8 @@ jobs:
   run_centoscore:
     docker:
       - image: circleci/openjdk:8-jdk-browsers
-      <<: *working_dir
-      <<: *environment
+      - *working_dir
+      - *environment
     steps:
 #      - checkout
 #      - *restore_cache
