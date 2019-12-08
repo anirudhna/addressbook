@@ -58,13 +58,13 @@ jobs:
       - *working_dir
       - *environment
     steps:
-      - checkout
-      - *restore_cache
-      - run: mvn dependency:go-offline
-      - *save_cache
-      - *chrome_binary_download
-    #  - *install_selenium
-    #  - *xvfb
+#      - checkout
+#      - *restore_cache
+#      - run: mvn dependency:go-offline
+#      - *save_cache
+#      - *chrome_binary_download
+#      - *install_selenium
+#      - *xvfb
       
       - run:
           name: Run Selenium - dashboardtests,issuetests
